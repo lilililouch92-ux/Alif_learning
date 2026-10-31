@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>رحلتي مع حرف الألف</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #fff1f7;
+  color: #55345f;
+  text-align: center;
+}
+header {
+  background: #a78bfa;
+  color: white;
+  padding: 22px;
+}
+main {
+  max-width: 650px;
+  margin: auto;
+  padding: 15px;
+}
+.card {
+  background: white;
+  padding: 20px;
+  margin: 15px 0;
+  border-radius: 22px;
+  box-shadow: 0 4px 12px #0001;
+}
+button {
+  border: 0;
+  border-radius: 15px;
+  padding: 14px;
+  margin: 6px;
+  font-size: 18px;
+  background: #8b5cf6;
+  color: white;
+}
+.hidden { display: none; }
+.big { font-size: 55px; margin: 20px; }
+</style>
+</head>
+<body>
+<header>
+<h1>🌸 رحلتي مع حرف الألف 🌸</h1>
+<p>نتعلم ونلعب ونفرح</p>
+</header>
+<main>
+<section id="home" class="card">
+<h2>اختاري الرمز ديالك يا بطلة</h2>
+<div id="students"></div>
+<button onclick="teacher()">👩‍🏫 الأستاذة</button>
+</section><section id="games" class="card hidden">
+<h2 id="welcome"></h2>
+<p>نقطك: <strong id="score">0</strong> من 10 ⭐</p>
+<h3>اختاري اللعبة</h3>
+<button onclick="start('listen')">👂 استمعي واختاري</button>
+<button onclick="start('match')">🔗 صلي الحرف</button>
+<button onclick="start('memory')">🧠 لعبة الذاكرة</button>
+<button onclick="start('speak')">🗣️ انطقي معنا</button>
+<button onclick="back()">رجوع</button>
+</section>
+
+<section id="quiz" class="card hidden">
+<h2 id="gameTitle"></h2>
+<p>السؤال <span id="number">1</span> من 10</p>
+<p>الوقت: <strong id="timer">30</strong> ثانية ⏳</p>
+<div id="question" class="big"></div>
+<div id="answers"></div>
+<div id="feedback"></div>
+</section>
+
+<section id="teacher" class="card hidden">
+<h2>👩‍🏫 لوحة الأستاذة</h2>
+<p>أدخلي الرمز السري</p>
+<input id="pin" type="password" placeholder="الرمز السري">
+<button onclick="loginTeacher()">دخول</button>
+<div id="teacherContent"></div>
+<button onclick="back()">رجوع</button>
+</section>
+</main><script>
+const names=["شروق","كنوسي","نزيهة","حورية","مينة","فاطمة","نجاة","أسماء","سمية","يامنة","سعدية","نادية","خديجة","تهامية","حياة"];
+const letters=["أَ","أُ","إِ","آ","أً","أٌ","أٍ"];
+let student=null,mode="",index=0,timer=null,seconds=30,locked=false;
+
+function getScores(){
+ return JSON.parse(localStorage.getItem("scores")||"{}");
+}
+function show(id){
+ ["home","games","quiz","teacher"].forEach(x=>
+ document.getElementById(x).classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
+}
+function render(){
+ let d=document.getElementById("students");
+ d.innerHTML="";
+ names.forEach((n,i)=>{
+ let b=document.createElement("button");
+ b.textContent="🌼 "+n;
+ b.onclick=()=>choose(n);
+ d.appendChild(b);
+ });
+}
+function choose(n){
+ student=n;
+ document.getElementById("welcome").textContent="مرحبا "+n+" 🌸";
+ updateScore();
+ show("games");
+}
+function updateScore(){
+ let s=getScores();
+ document.getElementById("score").textContent=(s[student]||[]).length;
+}
+function back(){
+ clearInterval(timer);
+ show("home");
+}
+function speak(t){
+ if("speechSynthesis" in window){
+ let u=new SpeechSynthesisUtterance(t);
+ u.lang="ar-SA";
+ u.rate=.75;
+ speechSynthesis.cancel();
+ speechSynthesis.speak(u);
+ }
+}
+function start(m){
+ mode=m;
+ index=0;
+ show("quiz");
+ next();
+}
+function next(){
+ clearInterval(timer);
+ if(index>=10){
+ show("games");
+ updateScore();
+ alert("أحسنتِ يا "+student+" 🌸 انتهى التمرين!");
+ return;
+ }
+ locked=false;
+ seconds=30;
+ document.getElementById("timer").textContent=seconds;
+ document.getElementById("number").textContent=index+1;
+ document.getElementById("feedback").textContent="";
+ let letter=letters[index%7];
+ let q=document.getElementById("question");
+ let a=document.getElementById("answers");
+ a.innerHTML="";
+ q.textContent=mode==="listen"?"🔊 استمعي واختاري":
+ mode==="speak"?"انطقي هذا الحرف":
+ mode==="memory"?"اختاري الحرف الذي تسمعينه":
+ "اختاري الحرف الصحيح";
+ if(mode==="listen"||mode==="memory"||mode==="speak"){
+ let listen=document.createElement("button");
+ listen.textContent="🔊 استمعي";
+ listen.onclick=()=>speak(letter);
+ a.appendChild(listen);
+ }
+ let opts=[letter];
+ while(opts.length<4){
+ let x=letters[Math.floor(Math.random()*7)];
+ if(!opts.includes(x))opts.push(x);
+ }
+ opts.sort(()=>Math.random()-.5);
+ opts.forEach(x=>{
+ let b=document.createElement("button");
+ b.textContent=x;
+ b.style.fontSize="26px";
+ b.onclick=()=>answer(x===letter);
+ a.appendChild(b);
+ });
+ timer=setInterval(()=>{
+ seconds--;
+ document.getElementById("timer").textContent=seconds;
+ if(seconds<=0)answer(false);
+ },1000);
+}
+function answer(ok){
+ if(locked)return;
+ locked=true;
+ clearInterval(timer);
+ let s=getScores();
+ if(!s[student])s[student]=[];
+ if(ok&&!s[student].includes(index)){
+ s[student].push(index);
+ localStorage.setItem("scores",JSON.stringify(s));
+ document.getElementById("feedback").textContent="👏 أحسنتِ! ⭐";
+ speak("أحسنت");
+ }else{
+ document.getElementById("feedback").textContent=ok?"سبق لك أخذ النقطة 💗":"لا بأس، نكمل 💗";
+ }
+ updateScore();
+ setTimeout(()=>{index++;next()},1200);
+}
+function teacher(){
+ show("teacher");
+}
+function loginTeacher(){
+ if(document.getElementById("pin").value!=="1234"){
+ alert("الرمز غير صحيح");
+ return;
+ }
+ let d=document.getElementById("teacherContent");
+ let s=getScores();
+ d.innerHTML="<h3>نقط التلميذات</h3>";
+ names.forEach(n=>{
+ let p=document.createElement("p");
+ p.textContent=n+" : "+(s[n]||[]).length+" من 10";
+ d.appendChild(p);
+ });
+}
+render();
+</script>
+</body>
+</html>
